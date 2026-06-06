@@ -23,9 +23,9 @@ restrictions in effect) and `3.12+` (all four lifted).
 ## What it does not check
 
 - Syntactic validity beyond f-string boundaries (won't tell you your tuple is malformed).
-- Runtime behavior — the analyzer is static.
+- Runtime behavior; the analyzer is static.
 - Walrus expressions, named expressions, conversion flags, or format-spec correctness.
-- 3.6 specifically — f-strings exist there but some edge cases (assignment expressions
+- 3.6 specifically. F-strings exist there but some edge cases (assignment expressions
   inside braces) were added later.
 
 The tool answers one question: "will this f-string parse on Python <3.12?"
@@ -33,7 +33,7 @@ The tool answers one question: "will this f-string parse on Python <3.12?"
 ## Why it exists
 
 I just fixed a Python 3.11 SyntaxError in a real project (WGDashboard#1290) where
-an f-string contained `data.strip('\n')` — a backslash inside the expression,
+an f-string contained `data.strip('\n')`: a backslash inside the expression,
 which Python 3.12+ accepts but 3.11 rejects. The fix took five minutes; finding
 the root cause took longer. A grep-by-eye for `f"..{..\\..}"` is the kind of
 thing a one-page tool should do for me. So I built it.
@@ -42,7 +42,7 @@ thing a one-page tool should do for me. So I built it.
 
 One HTML file. Inline CSS. Inline vanilla JS. No build step, no npm, no CDN,
 no analytics, no trackers. Save the page and it works offline forever. The URL
-is canonical and bookmarkable — paste once, share the link with the input
+is canonical and bookmarkable. Paste once, share the link with the input
 encoded in the hash.
 
 ## License

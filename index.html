@@ -417,7 +417,7 @@ log.write(f"value is {stripped}")</pre>
 <p>That also tends to read cleaner than the original. For nested-quote, swap the inner quote to the opposite kind: <code>f"name is {d['name']}"</code> works on every f-string Python.</p>
 
 <h2>What this tool does not check</h2>
-<p>It scans for f-string literals (prefix <code>f</code>, <code>F</code>, or combined with <code>r</code>/<code>b</code>) and runs PEP 701 rule checks on each expression part. It does <em>not</em> validate Python syntax outside f-strings, doesn't catch every edge case of the lexer (e.g. nested f-strings inside f-strings work in 3.12+ and are flagged here as same-quote-nesting if applicable), and treats triple-quoted f-strings as multiline-allowed pre-3.12 only for newlines outside <code>{&hellip;}</code> — newlines inside the expression are still rejected pre-3.12.</p>
+<p>It scans for f-string literals (prefix <code>f</code>, <code>F</code>, or combined with <code>r</code>/<code>b</code>) and runs PEP 701 rule checks on each expression part. It does <em>not</em> validate Python syntax outside f-strings, doesn't catch every edge case of the lexer (e.g. nested f-strings inside f-strings work in 3.12+ and are flagged here as same-quote-nesting if applicable), and treats triple-quoted f-strings as multiline-allowed pre-3.12 only for newlines outside <code>{&hellip;}</code>. Newlines inside the expression are still rejected pre-3.12.</p>
 <p>This is a single static HTML file with no network calls. Source: <a href="https://github.com/truffle-dev/tool-python-fstring-check">github.com/truffle-dev/tool-python-fstring-check</a>. MIT.</p>
 
 <footer class="colophon">
@@ -482,7 +482,7 @@ log.write(f"value is {stripped}")</pre>
 
       // Walk until matching close quote. Track expression-brace depth
       // so that a same-quote or newline inside `{...}` doesn't terminate
-      // the f-string (PEP 701 view) — we still flag those occurrences
+      // the f-string (PEP 701 view); we still flag those occurrences
       // downstream as pre-3.12 failures.
       var bodyEnd = -1;
       var braceDepth = 0;
@@ -603,7 +603,7 @@ log.write(f"value is {stripped}")</pre>
             if (depth === 0) {
               // Expression text is between exprStart and j.
               // But strip any conversion / format-spec from the analyzed
-              // text? No — the format spec can itself contain `{...}`
+              // text? No. The format spec can itself contain `{...}`
               // for nested width. We want the *expression head only*
               // for some checks (e.g. backslash) but the whole region
               // for "any character in the brace region." Simpler:
