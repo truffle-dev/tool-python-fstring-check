@@ -1,0 +1,938 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>python f-string compatibility checker</title>
+<meta name="description" content="Paste Python code containing f-strings. See which Python versions accept it. PEP 701 (3.12) lifted backslash, nested-quote, multiline, and comment restrictions.">
+<link rel="canonical" href="https://truffle.ghostwright.dev/public/tools/python-fstring-check/">
+<link rel="icon" type="image/png" sizes="32x32" href="/public/_assets/favicon-32.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="python f-string compatibility checker">
+<meta property="og:description" content="Paste a Python f-string. See which Python versions accept it. PEP 701 reference inline.">
+<meta property="og:url" content="https://truffle.ghostwright.dev/public/tools/python-fstring-check/">
+<meta name="twitter:card" content="summary">
+
+<style>
+:root {
+  --paper: #f6f1e6;
+  --paper-raised: #fbf7ec;
+  --ink: #1c1814;
+  --ink-soft: #2e2822;
+  --quiet: #6b6157;
+  --rule: #e0d6c0;
+  --rule-soft: #ebe2cf;
+  --link: #7a4f1a;
+  --accent: #a57729;
+  --accent-bright: #c39040;
+  --code-bg: #ece3cc;
+  --code-ink: #2e2822;
+  --ok: #4f7a2e;
+  --warn: #a57729;
+  --over: #a83a25;
+  --font-body: "Iowan Old Style", "Palatino Linotype", Palatino, "URW Palladio L", "Book Antiqua", Georgia, serif;
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #171310;
+    --paper-raised: #1e1814;
+    --ink: #f0e9d9;
+    --ink-soft: #e0d9c6;
+    --quiet: #9c9082;
+    --rule: #2e2820;
+    --rule-soft: #26211b;
+    --link: #d4a259;
+    --accent: #d4a259;
+    --accent-bright: #e4b574;
+    --code-bg: #201a15;
+    --code-ink: #e0d9c6;
+    --ok: #95c963;
+    --warn: #d4a259;
+    --over: #e07a5f;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font: 17px/1.6 var(--font-body);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+main {
+  max-width: 44rem;
+  padding: 2.5rem 1.5rem 4rem;
+  margin: 0 auto;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  margin: 0 0 0.7rem;
+}
+.eyebrow a {
+  color: var(--accent);
+  border-bottom: 1px solid color-mix(in oklab, var(--accent) 30%, transparent);
+  text-decoration: none;
+}
+
+h1 {
+  font-family: var(--font-mono);
+  font-size: clamp(1.6rem, 4vw, 2.1rem);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.5rem;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.lede {
+  font-size: 1.02rem;
+  color: var(--ink-soft);
+  margin: 0 0 2rem;
+  max-width: 36rem;
+}
+
+h2 {
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--quiet);
+  margin: 2.2rem 0 0.9rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+p { margin: 0 0 1rem; }
+
+a {
+  color: var(--link);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in oklab, var(--link) 30%, transparent);
+}
+a:hover { border-bottom-color: var(--link); }
+
+label.field-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--quiet);
+  margin: 0 0 0.5rem;
+}
+
+#src {
+  width: 100%;
+  min-height: 7.2rem;
+  padding: 0.85rem 0.95rem;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  line-height: 1.45;
+  background: var(--paper-raised);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  -webkit-appearance: none;
+  resize: vertical;
+  font-variant-numeric: tabular-nums;
+  tab-size: 4;
+  white-space: pre;
+  overflow-x: auto;
+}
+#src:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+.preset-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--quiet);
+  margin: 1.6rem 0 0;
+}
+
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.9rem 0 0;
+}
+.presets button {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.32rem 0.65rem;
+  cursor: pointer;
+  -webkit-appearance: none;
+  letter-spacing: 0.02em;
+}
+.presets button:hover { border-color: var(--accent); color: var(--accent); }
+.presets button:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.result {
+  margin: 1.6rem 0 0;
+  padding: 1.1rem 1.2rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.status {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  margin: 0 0 0.6rem;
+  font-weight: 600;
+}
+.status.ok { color: var(--ok); }
+.status.over { color: var(--over); }
+.status.warn { color: var(--warn); }
+
+.summary {
+  font-family: var(--font-display);
+  font-size: 1.18rem;
+  line-height: 1.4;
+  margin: 0 0 0.6rem;
+  color: var(--ink);
+}
+.summary em {
+  font-style: italic;
+  color: var(--accent);
+}
+
+.error-detail {
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  color: var(--over);
+  margin: 0 0 0.3rem;
+  background: color-mix(in oklab, var(--over) 8%, transparent);
+  padding: 0.5rem 0.7rem;
+  border-radius: 4px;
+  border: 1px solid color-mix(in oklab, var(--over) 25%, transparent);
+}
+
+table.versions {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  margin: 0.4rem 0 0;
+  font-variant-numeric: tabular-nums;
+}
+table.versions th, table.versions td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--rule-soft);
+  vertical-align: top;
+}
+table.versions th {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  color: var(--quiet);
+  font-weight: 600;
+  border-bottom: 1px solid var(--rule);
+}
+table.versions td.ver { color: var(--quiet); white-space: nowrap; width: 6.5rem; }
+table.versions td.verdict { white-space: nowrap; font-weight: 600; width: 4.5rem; }
+table.versions td.verdict.ok { color: var(--ok); }
+table.versions td.verdict.over { color: var(--over); }
+table.versions td.reason { color: var(--ink-soft); }
+
+.findings {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+}
+.findings li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.findings li:last-child { border-bottom: 0; }
+.findings .loc {
+  color: var(--quiet);
+  font-size: 0.76rem;
+  margin-right: 0.5rem;
+}
+.findings .snippet {
+  color: var(--accent);
+  font-weight: 600;
+}
+.findings .reason {
+  color: var(--ink-soft);
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+table.reference {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  margin: 0;
+}
+table.reference th, table.reference td {
+  text-align: left;
+  padding: 0.42rem 0.55rem;
+  border-bottom: 1px solid var(--rule-soft);
+  vertical-align: top;
+}
+table.reference th {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  color: var(--quiet);
+  font-weight: 600;
+  border-bottom: 1px solid var(--rule);
+}
+table.reference td:first-child { color: var(--accent); font-weight: 600; white-space: nowrap; }
+table.reference td:nth-child(2) { color: var(--ink-soft); }
+table.reference td:nth-child(3) { color: var(--quiet); font-size: 0.78rem; }
+
+code, pre {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--code-bg);
+  color: var(--code-ink);
+  padding: 0.1rem 0.32rem;
+  border-radius: 3px;
+}
+pre {
+  padding: 0.7rem 0.9rem;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+
+footer.colophon {
+  margin: 4rem 0 0;
+  padding: 1.2rem 0 0;
+  border-top: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--quiet);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.4rem;
+  justify-content: space-between;
+}
+footer.colophon a {
+  color: var(--quiet);
+  border-bottom-color: color-mix(in oklab, var(--quiet) 30%, transparent);
+}
+footer.colophon a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+@media (max-width: 480px) {
+  main { padding: 1.8rem 1rem 3rem; }
+  #src { font-size: 0.86rem; }
+  .summary { font-size: 1.04rem; }
+  table.versions, table.reference { font-size: 0.78rem; }
+  table.versions td.ver { width: 5rem; }
+  table.versions td.verdict { width: 3.5rem; }
+}
+</style>
+</head>
+<body>
+
+<main>
+
+<p class="eyebrow"><a href="/public/tools/">/public/tools/</a></p>
+<h1>python f-string compatibility checker</h1>
+<p class="lede">Paste Python code containing f-strings. See which Python versions accept it, and which rule each f-string trips on PEP 701.</p>
+
+<label class="field-label" for="src">python source</label>
+<textarea id="src" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" wrap="off" autofocus>f"value is {data.strip('\n')}"</textarea>
+
+<span class="preset-label">presets</span>
+<div class="presets" id="presets">
+  <button type="button" data-src="f&quot;value is {data.strip('\n')}&quot;">backslash in expression</button>
+  <button type="button" data-src="f'name is {d['name']}'">same-quote nesting</button>
+  <button type="button" data-src="f&quot;name is {d['name']}&quot;">opposite-quote nesting</button>
+  <button type="button" data-src="f&quot;total is {sum(&#10;    x for x in items&#10;)}&quot;">multiline expression</button>
+  <button type="button" data-src="f&quot;answer is {value  # comment&#10;}&quot;">comment in expression</button>
+  <button type="button" data-src="f&quot;{value:>{width}}&quot;">nested format spec</button>
+  <button type="button" data-src="f&quot;hello {name!r:>10}&quot;">plain f-string</button>
+  <button type="button" data-src="f&quot;\n{x}&quot;">backslash outside expression</button>
+</div>
+
+<section class="result" id="result" aria-live="polite">
+  <p class="status ok" id="status">analyzing&hellip;</p>
+  <p class="summary" id="summary"></p>
+  <div id="errorBox" hidden></div>
+
+  <h2 style="margin-top: 1.4rem;">Per-version verdict</h2>
+  <table class="versions">
+    <thead>
+      <tr><th>Python</th><th>Verdict</th><th>Reason</th></tr>
+    </thead>
+    <tbody id="versionsBody"></tbody>
+  </table>
+
+  <h2 style="margin-top: 1.6rem;">Findings</h2>
+  <ul class="findings" id="findings"></ul>
+</section>
+
+<h2>What PEP 701 changed</h2>
+<p>Before Python 3.12 the f-string grammar was a hand-rolled parser separate from the rest of the language. It treated the expression inside <code>{&hellip;}</code> as a substring, and several characters that work everywhere else in Python were rejected only there.</p>
+<p>PEP 701 reimplemented f-strings inside the PEG parser, which lifted those restrictions in one stroke. The four most common gotchas:</p>
+
+<table class="reference">
+  <thead>
+    <tr><th>rule</th><th>before 3.12</th><th>3.12 and later</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>backslash in expression</td><td>rejected</td><td>accepted</td></tr>
+    <tr><td>same-quote nesting</td><td>rejected</td><td>accepted</td></tr>
+    <tr><td>multiline expression</td><td>rejected</td><td>accepted</td></tr>
+    <tr><td>comment in expression</td><td>rejected</td><td>accepted</td></tr>
+  </tbody>
+</table>
+
+<h2>Workarounds for older Python</h2>
+<p>If a check fails on 3.11 and you need to support it, the canonical move is to bind the offending sub-expression to a local before the f-string:</p>
+<pre>stripped = data.strip("\n")
+log.write(f"value is {stripped}")</pre>
+<p>That also tends to read cleaner than the original. For nested-quote, swap the inner quote to the opposite kind: <code>f"name is {d['name']}"</code> works on every f-string Python.</p>
+
+<h2>What this tool does not check</h2>
+<p>It scans for f-string literals (prefix <code>f</code>, <code>F</code>, or combined with <code>r</code>/<code>b</code>) and runs PEP 701 rule checks on each expression part. It does <em>not</em> validate Python syntax outside f-strings, doesn't catch every edge case of the lexer (e.g. nested f-strings inside f-strings work in 3.12+ and are flagged here as same-quote-nesting if applicable), and treats triple-quoted f-strings as multiline-allowed pre-3.12 only for newlines outside <code>{&hellip;}</code> — newlines inside the expression are still rejected pre-3.12.</p>
+<p>This is a single static HTML file with no network calls. Source: <a href="https://github.com/truffle-dev/tool-python-fstring-check">github.com/truffle-dev/tool-python-fstring-check</a>. MIT.</p>
+
+<footer class="colophon">
+  <span><a href="https://truffle.ghostwright.dev/">truffle.ghostwright.dev</a></span>
+  <span>MIT &middot; <a href="https://github.com/truffle-dev/tool-python-fstring-check">source</a></span>
+</footer>
+
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  // -------- f-string finder --------
+  //
+  // Scans Python source for string literals with the f / F prefix
+  // (possibly combined with r / R / b / B). Returns each f-string with
+  // its boundary quote, whether it's triple-quoted, the raw body, and
+  // the parsed expression parts.
+
+  function findFStrings(src) {
+    var out = [];
+    var i = 0, n = src.length;
+
+    while (i < n) {
+      var c = src.charCodeAt(i);
+
+      // Skip line comments
+      if (c === 35 /* # */) {
+        while (i < n && src.charCodeAt(i) !== 10) i++;
+        continue;
+      }
+
+      // Maybe a string-literal prefix. Python prefixes: r, b, f and
+      // their combinations, case-insensitive, max 2 chars.
+      var prefixStart = i;
+      var prefixLen = 0;
+      var hasF = false;
+      var hasR = false;
+      while (i < n && prefixLen < 2) {
+        var ch = src[i];
+        var lower = ch.toLowerCase();
+        if (lower === "f" && !hasF) { hasF = true; i++; prefixLen++; }
+        else if (lower === "r" && !hasR) { hasR = true; i++; prefixLen++; }
+        else if (lower === "b" && !hasF) { i++; prefixLen++; } // b conflicts with f
+        else break;
+      }
+
+      // Not a string start? Skip one char and continue.
+      if (i >= n || (src[i] !== "'" && src[i] !== "\"")) {
+        // Reset and advance by one char from the original spot
+        i = prefixStart + 1;
+        continue;
+      }
+
+      // It's a string literal. Determine triple vs single, boundary.
+      var quote = src[i];
+      var triple = (src.substr(i, 3) === quote + quote + quote);
+      var boundaryStart = i;
+      i += triple ? 3 : 1;
+      var bodyStart = i;
+
+      // Walk until matching close quote. Track expression-brace depth
+      // so that a same-quote or newline inside `{...}` doesn't terminate
+      // the f-string (PEP 701 view) — we still flag those occurrences
+      // downstream as pre-3.12 failures.
+      var bodyEnd = -1;
+      var braceDepth = 0;
+      var inExprStr = false;
+      var exprStrQuote = "";
+      var exprStrTriple = false;
+      while (i < n) {
+        var cc = src[i];
+        if (braceDepth === 0) {
+          if (cc === "\\" && !hasR) { i += 2; continue; }
+          if (triple) {
+            if (src.substr(i, 3) === quote + quote + quote) {
+              bodyEnd = i; i += 3; break;
+            }
+            if (cc === "{" && src[i + 1] === "{") { i += 2; continue; }
+            if (cc === "}" && src[i + 1] === "}") { i += 2; continue; }
+            if (cc === "{") { braceDepth = 1; i++; continue; }
+            i++;
+          } else {
+            if (cc === quote) { bodyEnd = i; i += 1; break; }
+            if (cc === "\n") { bodyEnd = i; break; }
+            if (cc === "{" && src[i + 1] === "{") { i += 2; continue; }
+            if (cc === "}" && src[i + 1] === "}") { i += 2; continue; }
+            if (cc === "{") { braceDepth = 1; i++; continue; }
+            i++;
+          }
+        } else {
+          if (inExprStr) {
+            if (cc === "\\") { i += 2; continue; }
+            if (exprStrTriple) {
+              if (src.substr(i, 3) === exprStrQuote + exprStrQuote + exprStrQuote) {
+                inExprStr = false; i += 3; continue;
+              }
+              i++; continue;
+            }
+            if (cc === exprStrQuote) { inExprStr = false; i++; continue; }
+            i++; continue;
+          }
+          if (cc === "'" || cc === "\"") {
+            exprStrQuote = cc;
+            exprStrTriple = (src.substr(i, 3) === cc + cc + cc);
+            inExprStr = true;
+            i += exprStrTriple ? 3 : 1;
+            continue;
+          }
+          if (cc === "{") { braceDepth++; i++; continue; }
+          if (cc === "}") { braceDepth--; i++; continue; }
+          i++;
+        }
+      }
+      if (bodyEnd === -1) bodyEnd = n;
+
+      // Only emit if it was actually an f-string
+      if (hasF) {
+        var body = src.slice(bodyStart, bodyEnd);
+        var expressions = parseExpressions(body, quote);
+        out.push({
+          prefixStart: prefixStart,
+          boundaryStart: boundaryStart,
+          bodyStart: bodyStart,
+          bodyEnd: bodyEnd,
+          quote: quote,
+          triple: triple,
+          raw: hasR,
+          body: body,
+          line: lineOf(src, prefixStart),
+          col: colOf(src, prefixStart),
+          expressions: expressions,
+        });
+      }
+    }
+    return out;
+  }
+
+  function parseExpressions(body, boundaryQuote) {
+    // Walk the f-string body. When we hit a single `{`, enter expression
+    // mode, balance braces (tracking string literals inside the
+    // expression so a `}` in a nested string doesn't close), and emit
+    // each expression with its character range within the body.
+    var out = [];
+    var i = 0, n = body.length;
+    while (i < n) {
+      var ch = body[i];
+      if (ch === "{") {
+        if (body[i + 1] === "{") { i += 2; continue; }
+        // Expression starts after `{`.
+        var exprStart = i + 1;
+        var depth = 1;
+        var j = exprStart;
+        var inStr = false;
+        var strQuote = "";
+        var strTriple = false;
+        while (j < n) {
+          var d = body[j];
+          if (inStr) {
+            if (d === "\\") { j += 2; continue; }
+            if (strTriple) {
+              if (body.substr(j, 3) === strQuote + strQuote + strQuote) {
+                inStr = false; j += 3; continue;
+              }
+              j++;
+              continue;
+            }
+            if (d === strQuote) { inStr = false; j++; continue; }
+            j++;
+            continue;
+          }
+          if (d === "'" || d === "\"") {
+            strQuote = d;
+            strTriple = (body.substr(j, 3) === d + d + d);
+            inStr = true;
+            j += strTriple ? 3 : 1;
+            continue;
+          }
+          if (d === "{") { depth++; j++; continue; }
+          if (d === "}") {
+            depth--;
+            if (depth === 0) {
+              // Expression text is between exprStart and j.
+              // But strip any conversion / format-spec from the analyzed
+              // text? No — the format spec can itself contain `{...}`
+              // for nested width. We want the *expression head only*
+              // for some checks (e.g. backslash) but the whole region
+              // for "any character in the brace region." Simpler:
+              // emit the whole region; mark format-spec boundary if
+              // present.
+              var raw = body.slice(exprStart, j);
+              out.push({
+                start: exprStart,
+                end: j,
+                raw: raw,
+              });
+              j++;
+              break;
+            }
+            j++;
+            continue;
+          }
+          j++;
+        }
+        i = j;
+        continue;
+      }
+      if (ch === "}") {
+        // `}}` is an escaped brace; lone `}` is a syntax error but we
+        // tolerate it for analysis purposes.
+        if (body[i + 1] === "}") { i += 2; continue; }
+        i++; continue;
+      }
+      i++;
+    }
+    return out;
+  }
+
+  // -------- PEP 701 rule analysis --------
+  //
+  // For each expression in each f-string, check four rules. Each rule
+  // gates pre-3.12 acceptance.
+
+  function analyzeExpression(expr, fstr) {
+    var findings = [];
+    var raw = expr.raw;
+    var boundary = fstr.quote;
+
+    // Rule 1: backslash anywhere in expression region.
+    // Even inside a string literal nested in the expression. PEP 701
+    // is what lifted this; pre-3.12 rejected all backslashes.
+    var bs = raw.indexOf("\\");
+    if (bs !== -1) {
+      findings.push({
+        rule: "backslash",
+        snippet: snippetAt(raw, bs, 12),
+        offset: bs,
+        message: "Backslash inside the expression part. Pre-3.12 disallows it; PEP 701 (3.12) accepts it.",
+      });
+    }
+
+    // Rule 2: same-quote as the f-string boundary inside expression.
+    // Triple-quoted f-strings still rejected inner triple of same kind
+    // pre-3.12, but a single inner same-quote is fine because the
+    // boundary is three of them. To keep this honest, we only flag
+    // when:
+    //  - not triple, and the expression contains the boundary char
+    //  - triple, and the expression contains boundary+boundary+boundary
+    if (!fstr.triple) {
+      var idx = -1;
+      for (var k = 0; k < raw.length; k++) {
+        if (raw[k] === boundary) { idx = k; break; }
+      }
+      if (idx !== -1) {
+        findings.push({
+          rule: "same-quote",
+          snippet: snippetAt(raw, idx, 12),
+          offset: idx,
+          message: "Expression contains the same quote (" + boundary + ") that bounds the f-string. Pre-3.12 disallows it; PEP 701 (3.12) accepts it.",
+        });
+      }
+    } else {
+      var triplePat = boundary + boundary + boundary;
+      var tidx = raw.indexOf(triplePat);
+      if (tidx !== -1) {
+        findings.push({
+          rule: "same-quote-triple",
+          snippet: snippetAt(raw, tidx, 12),
+          offset: tidx,
+          message: "Expression contains the same triple-quote (" + triplePat + ") that bounds the f-string. Pre-3.12 disallows it; PEP 701 (3.12) accepts it.",
+        });
+      }
+    }
+
+    // Rule 3: newline in expression.
+    var nl = raw.indexOf("\n");
+    if (nl !== -1) {
+      findings.push({
+        rule: "multiline",
+        snippet: snippetAt(raw, nl, 12).replace(/\n/g, "\\n"),
+        offset: nl,
+        message: "Expression spans multiple lines. Pre-3.12 disallows it; PEP 701 (3.12) accepts it.",
+      });
+    }
+
+    // Rule 4: `#` comment in expression (outside any nested string).
+    // Walk the expression and find `#` that isn't inside a string literal.
+    var commentIdx = findCommentOutsideString(raw);
+    if (commentIdx !== -1) {
+      findings.push({
+        rule: "comment",
+        snippet: snippetAt(raw, commentIdx, 12),
+        offset: commentIdx,
+        message: "Expression contains a `#` comment. Pre-3.12 disallows it; PEP 701 (3.12) accepts it.",
+      });
+    }
+
+    return findings;
+  }
+
+  function findCommentOutsideString(raw) {
+    var i = 0, n = raw.length;
+    var inStr = false, strQuote = "", strTriple = false;
+    while (i < n) {
+      var c = raw[i];
+      if (inStr) {
+        if (c === "\\") { i += 2; continue; }
+        if (strTriple) {
+          if (raw.substr(i, 3) === strQuote + strQuote + strQuote) {
+            inStr = false; i += 3; continue;
+          }
+          i++; continue;
+        }
+        if (c === strQuote) { inStr = false; i++; continue; }
+        i++; continue;
+      }
+      if (c === "'" || c === "\"") {
+        strQuote = c;
+        strTriple = (raw.substr(i, 3) === c + c + c);
+        inStr = true;
+        i += strTriple ? 3 : 1;
+        continue;
+      }
+      if (c === "#") return i;
+      i++;
+    }
+    return -1;
+  }
+
+  function snippetAt(raw, idx, radius) {
+    var start = Math.max(0, idx - radius);
+    var end = Math.min(raw.length, idx + radius + 1);
+    var prefix = start > 0 ? "..." : "";
+    var suffix = end < raw.length ? "..." : "";
+    return prefix + raw.slice(start, end) + suffix;
+  }
+
+  function lineOf(src, pos) {
+    var line = 1;
+    for (var i = 0; i < pos; i++) if (src.charCodeAt(i) === 10) line++;
+    return line;
+  }
+  function colOf(src, pos) {
+    var col = 1;
+    for (var i = pos - 1; i >= 0 && src.charCodeAt(i) !== 10; i--) col++;
+    return col;
+  }
+
+  // -------- verdict aggregation --------
+
+  var VERSIONS = [
+    { label: "3.6 – 3.11", id: "pre312", note: "f-strings introduced (3.6); PEP 701 restrictions in effect" },
+    { label: "3.12+",      id: "post312", note: "PEP 701 lifts all four restrictions" },
+  ];
+
+  // Any finding marks pre-3.12 as failing. None of these rules
+  // matter for 3.12+, so post312 is always pass.
+
+  function aggregate(allFindings) {
+    var pre = allFindings.length === 0 ? "ok" : "fail";
+    return {
+      pre312: pre,
+      post312: "ok",
+      count: allFindings.length,
+    };
+  }
+
+  // -------- render --------
+
+  var srcEl = document.getElementById("src");
+  var statusEl = document.getElementById("status");
+  var summaryEl = document.getElementById("summary");
+  var errorBox = document.getElementById("errorBox");
+  var versionsBody = document.getElementById("versionsBody");
+  var findingsEl = document.getElementById("findings");
+
+  function render() {
+    var src = srcEl.value;
+    writeHash(src);
+
+    var fstrings = findFStrings(src);
+    if (fstrings.length === 0) {
+      statusEl.className = "status warn";
+      statusEl.textContent = "no f-strings found";
+      summaryEl.textContent = "Paste Python code containing at least one f-string (prefix f or F).";
+      errorBox.hidden = true;
+      versionsBody.innerHTML = "";
+      findingsEl.innerHTML = "";
+      return;
+    }
+
+    var allFindings = [];
+    for (var i = 0; i < fstrings.length; i++) {
+      var fs = fstrings[i];
+      for (var j = 0; j < fs.expressions.length; j++) {
+        var exprFindings = analyzeExpression(fs.expressions[j], fs);
+        for (var k = 0; k < exprFindings.length; k++) {
+          allFindings.push({
+            fstring: fs,
+            expression: fs.expressions[j],
+            finding: exprFindings[k],
+          });
+        }
+      }
+    }
+
+    var verdict = aggregate(allFindings);
+
+    if (verdict.pre312 === "ok") {
+      statusEl.className = "status ok";
+      statusEl.textContent = "accepted on every f-string Python";
+      summaryEl.textContent = formatPlain(fstrings.length);
+    } else {
+      statusEl.className = "status over";
+      statusEl.textContent = "requires Python 3.12+";
+      summaryEl.innerHTML = formatBroken(fstrings.length, allFindings.length);
+    }
+
+    versionsBody.innerHTML = renderVersions(verdict, allFindings);
+    findingsEl.innerHTML = renderFindings(allFindings);
+  }
+
+  function formatPlain(count) {
+    if (count === 1) return "One f-string parsed cleanly under every PEP 701 rule.";
+    return count + " f-strings parsed cleanly under every PEP 701 rule.";
+  }
+  function formatBroken(fcount, findCount) {
+    var fnoun = fcount === 1 ? "f-string trips" : "f-strings trip";
+    var rnoun = findCount === 1 ? "one PEP 701 rule" : findCount + " PEP 701 rules";
+    return fcount + " " + fnoun + " " + rnoun + " that block pre-3.12 Python.";
+  }
+
+  function renderVersions(verdict, findings) {
+    var rows = "";
+    for (var i = 0; i < VERSIONS.length; i++) {
+      var v = VERSIONS[i];
+      var state = verdict[v.id];
+      var verdictText = state === "ok" ? "accepts" : "rejects";
+      var reason;
+      if (state === "ok") {
+        reason = v.note;
+      } else {
+        var rules = {};
+        for (var k = 0; k < findings.length; k++) rules[findings[k].finding.rule] = true;
+        var ruleList = Object.keys(rules).map(humanRule).join(", ");
+        reason = "rejects on " + ruleList;
+      }
+      rows += "<tr><td class='ver'>" + escapeHtml(v.label) + "</td>" +
+              "<td class='verdict " + state + "'>" + verdictText + "</td>" +
+              "<td class='reason'>" + escapeHtml(reason) + "</td></tr>";
+    }
+    return rows;
+  }
+
+  function humanRule(r) {
+    if (r === "backslash") return "backslash in expression";
+    if (r === "same-quote") return "same-quote nesting";
+    if (r === "same-quote-triple") return "triple-quote nesting";
+    if (r === "multiline") return "multiline expression";
+    if (r === "comment") return "comment in expression";
+    return r;
+  }
+
+  function renderFindings(findings) {
+    if (findings.length === 0) {
+      return "<li><span class='reason'>No findings. Every expression part is PEP 701-clean and PEP 701-irrelevant.</span></li>";
+    }
+    var out = "";
+    for (var i = 0; i < findings.length; i++) {
+      var f = findings[i];
+      var loc = "line " + f.fstring.line + " col " + f.fstring.col;
+      out += "<li>" +
+        "<span class='loc'>[" + loc + "]</span>" +
+        "<span class='snippet'>" + escapeHtml(f.finding.snippet) + "</span>" +
+        "<span class='reason'>" + escapeHtml(f.finding.message) + "</span>" +
+        "</li>";
+    }
+    return out;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  function writeHash(src) {
+    var hash = "#src=" + encodeURIComponent(src);
+    if (location.hash !== hash) {
+      history.replaceState(null, "", location.pathname + hash);
+    }
+  }
+  function readHash() {
+    var h = location.hash;
+    if (!h || h.length < 2) return null;
+    var params = new URLSearchParams(h.slice(1));
+    return params.get("src");
+  }
+
+  var initial = readHash();
+  if (initial !== null) srcEl.value = initial;
+
+  srcEl.addEventListener("input", render);
+
+  var presetsEl = document.getElementById("presets");
+  presetsEl.addEventListener("click", function (ev) {
+    var btn = ev.target.closest("button[data-src]");
+    if (!btn) return;
+    srcEl.value = btn.dataset.src;
+    srcEl.focus();
+    render();
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>
